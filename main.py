@@ -1,9 +1,11 @@
+import numpy
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from model import Cuckoo
-
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 app = FastAPI()
 
 class RequestBody(BaseModel):
@@ -37,9 +39,28 @@ async def root():
 async def api(request: RequestBody):
     print(request)
     cuckoo = Cuckoo(request.val, request.weight, request.capacity, request.N, request.pa, request.maxiter)
-    cuckoo.process()
+    cuckoo_sol, cuckoo_val, cuckoo_weight, cuckoo_time = cuckoo.process()
+    real_sol, real_val, real_weight, real_time = cuckoo.blind_search()
     response = dict()
-    response.update({"best_solution": cuckoo.get_best_solution().tolist()})
-    response.update({"best_value": cuckoo.out(cuckoo.get_best_solution()).__int__()})
-    response.update({"weight": cuckoo.get_weight().__int__()})
-    return response
+    print('cuckoo sol', cuckoo_sol)
+    print('cuckoo val', cuckoo_val)
+    print('cuckoo weight', cuckoo_weight)
+    print('cuckoo time', cuckoo_time)
+
+    print('real sol', real_sol)
+    print('real val', real_val)
+    print('real weight', real_weight)
+    print('real time', real_time)
+
+    response.update({"cuckoo_sol": cuckoo_sol.tolist()})
+    response.update({"cuckoo_val": cuckoo_val.__int__()})
+    response.update({"cuckoo_weight": cuckoo_weight.__int__()})
+    response.update({"cuckoo_time": cuckoo_time.__float__()})
+
+    response.update({"real_sol": real_sol})
+    response.update({"real_val": real_val.__int__()})
+    response.update({"real_weight": real_weight.__int__()})
+    response.update({"real_time": real_time.__float__()})
+
+    json_compatible_item_data = jsonable_encoder(response)
+    return JSONResponse(content=json_compatible_item_data)
